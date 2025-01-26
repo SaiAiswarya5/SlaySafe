@@ -23,6 +23,13 @@
         "backgroundColor": "#ff69b4"
       }
     },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "newArchEnabled": true,
+    "experiments": {
+      "tsconfigPaths": true
+    },
     "plugins": [
       [
         "expo-location",
