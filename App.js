@@ -60,7 +60,7 @@ const emergencyResources = [
 const mockVenues = [
   {
     id: '1',
-    name: "Harry's Chocolate Shop",
+    name: "Harry's Chocolate Shop (21+)",
     type: "Bar",
     address: "329 W State St, West Lafayette, IN 47906",
     safetyRating: 4,
@@ -73,7 +73,7 @@ const mockVenues = [
   },
   {
     id: '2',
-    name: "Neon Cactus",
+    name: "Neon Cactus (21+)",
     type: "Club & Dancing",
     address: "360 Brown St, West Lafayette, IN 47906",
     safetyRating: 3.7, 
@@ -86,7 +86,7 @@ const mockVenues = [
   },
   {
     id: '3',
-    name: "Girls Night Party",
+    name: "Hill Club (21+)",
     type: "Special Event",
     address: "789 Pine St",
     safetyRating: 4.9,
