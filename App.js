@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, FlatList, TouchableOpacity, SafeAreaView, ScrollView, Image } from 'react-native';
-import * as Location from 'expo-location';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Platform, SafeAreaView, StatusBar, FlatList, Image } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
+import * as Location from 'expo-location';
 
 // Safety tips and resources
 const safetyTips = [
@@ -62,6 +62,7 @@ const mockVenues = [
     address: "123 Main St",
     safetyRating: 4.8,
     features: ["Well-lit parking", "Security cameras", "Female security staff"],
+    coordinates: { latitude: 37.78825, longitude: -122.4324 },
     reviews: [
       { id: '1', text: "Great atmosphere and attentive staff", rating: 5 },
       { id: '2', text: "Security is always present and professional", rating: 4.5 }
@@ -74,6 +75,7 @@ const mockVenues = [
     address: "456 Oak Ave",
     safetyRating: 4.5,
     features: ["Drink testing kits", "Safe ride service", "All-female bartenders"],
+    coordinates: { latitude: 37.78925, longitude: -122.4344 },
     reviews: [
       { id: '3', text: "Well-lit parking area, felt very safe", rating: 4.5 },
       { id: '4', text: "Friendly bouncers, zero tolerance for harassment", rating: 4.5 }
@@ -86,6 +88,7 @@ const mockVenues = [
     address: "789 Pine St",
     safetyRating: 4.9,
     features: ["Women-only event", "Security escorts", "Bag check"],
+    coordinates: { latitude: 37.79025, longitude: -122.4364 },
     reviews: [
       { id: '5', text: "Women-only event, great vibes!", rating: 5 },
       { id: '6', text: "Amazing organization and security", rating: 4.8 }
@@ -96,9 +99,7 @@ const mockVenues = [
 export default function App() {
   const [location, setLocation] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
-  const [venues, setVenues] = useState(mockVenues);
-  const [selectedVenue, setSelectedVenue] = useState(null);
-  const [currentTab, setCurrentTab] = useState('venues'); // ['venues', 'safety']
+  const [selectedTab, setSelectedTab] = useState('venues');
 
   useEffect(() => {
     (async () => {
@@ -113,131 +114,104 @@ export default function App() {
     })();
   }, []);
 
-  const VenueItem = ({ venue }) => (
-    <TouchableOpacity
-      style={styles.venueItem}
-      onPress={() => setSelectedVenue(venue)}
-    >
-      <View style={styles.venueHeader}>
-        <Text style={styles.venueName}>{venue.name}</Text>
-        <View style={styles.safetyBadge}>
-          <Text style={styles.safetyText}>
-            Safety: {venue.safetyRating}/5 ✨
-          </Text>
-        </View>
+  const renderVenues = () => (
+    <ScrollView style={styles.contentContainer}>
+      <View style={styles.mapContainer}>
+        <MapView
+          style={styles.map}
+          initialRegion={{
+            latitude: location?.coords?.latitude || 37.78825,
+            longitude: location?.coords?.longitude || -122.4324,
+            latitudeDelta: 0.0922,
+            longitudeDelta: 0.0421,
+          }}
+        >
+          {mockVenues.map(venue => (
+            <Marker
+              key={venue.id}
+              coordinate={venue.coordinates}
+              title={venue.name}
+              description={venue.type}
+            />
+          ))}
+        </MapView>
       </View>
-      <Text style={styles.venueType}>{venue.type}</Text>
-      <Text style={styles.venueAddress}>{venue.address}</Text>
-      <View style={styles.featureContainer}>
-        {venue.features.map((feature, index) => (
-          <Text key={index} style={styles.featureTag}>💗 {feature}</Text>
+      <FlatList
+        data={mockVenues}
+        renderItem={({ item }) => (
+          <View key={item.id} style={styles.venueCard}>
+            <Text style={styles.venueName}>{item.name}</Text>
+            <Text style={styles.venueType}>{item.type}</Text>
+            <Text style={styles.venueAddress}>{item.address}</Text>
+            <Text style={styles.safetyRating}>Safety Rating: ⭐️ {item.safetyRating}/5</Text>
+            <View style={styles.featuresList}>
+              {item.features.map((feature, index) => (
+                <Text key={index} style={styles.feature}>• {feature}</Text>
+              ))}
+            </View>
+            <View style={styles.reviewsList}>
+              {item.reviews.map(review => (
+                <View key={review.id} style={styles.review}>
+                  <Text>{review.text}</Text>
+                  <Text style={styles.rating}>Rating: {review.rating}/5 ⭐</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+        keyExtractor={item => item.id}
+      />
+    </ScrollView>
+  );
+
+  const renderSafety = () => (
+    <ScrollView style={styles.contentContainer}>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>💝 Safety Tips 💝</Text>
+        {safetyTips.map(tip => (
+          <View key={tip.id} style={styles.tipCard}>
+            <Text style={styles.tipIcon}>{tip.icon}</Text>
+            <Text style={styles.tipTitle}>{tip.title}</Text>
+            <Text style={styles.tipDescription}>{tip.description}</Text>
+          </View>
         ))}
       </View>
-    </TouchableOpacity>
-  );
-
-  const SafetyTipCard = ({ tip }) => (
-    <View style={styles.tipCard}>
-      <Text style={styles.tipIcon}>{tip.icon}</Text>
-      <Text style={styles.tipTitle}>{tip.title}</Text>
-      <Text style={styles.tipDescription}>{tip.description}</Text>
-    </View>
-  );
-
-  const EmergencyResourceCard = ({ resource }) => (
-    <View style={styles.resourceCard}>
-      <Text style={styles.resourceName}>{resource.name}</Text>
-      <Text style={styles.resourceNumber}>{resource.number}</Text>
-      <Text style={styles.resourceAvailable}>{resource.available}</Text>
-    </View>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>🆘 Emergency Resources 🆘</Text>
+        {emergencyResources.map(resource => (
+          <TouchableOpacity key={resource.id} style={styles.contactCard}>
+            <Text style={styles.contactName}>{resource.name}</Text>
+            <Text style={styles.contactNumber}>{resource.number}</Text>
+            <Text style={styles.contactAvailable}>{resource.available}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </ScrollView>
   );
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar style="auto" backgroundColor="#fff" barStyle="dark-content" />
       <View style={styles.header}>
         <Text style={styles.title}>✨ SafeNightOut ✨</Text>
       </View>
-
-      <View style={styles.tabContainer}>
-        <TouchableOpacity 
-          style={[styles.tab, currentTab === 'venues' && styles.activeTab]}
-          onPress={() => setCurrentTab('venues')}
+      <View style={styles.content}>
+        {selectedTab === 'venues' ? renderVenues() : renderSafety()}
+      </View>
+      <View style={styles.tabBar}>
+        <TouchableOpacity
+          style={[styles.tab, selectedTab === 'venues' && styles.activeTab]}
+          onPress={() => setSelectedTab('venues')}
         >
-          <Text style={[styles.tabText, currentTab === 'venues' && styles.activeTabText]}>Venues</Text>
+          <Text style={[styles.tabText, selectedTab === 'venues' && styles.activeTabText]}>Venues</Text>
         </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.tab, currentTab === 'safety' && styles.activeTab]}
-          onPress={() => setCurrentTab('safety')}
+        <TouchableOpacity
+          style={[styles.tab, selectedTab === 'safety' && styles.activeTab]}
+          onPress={() => setSelectedTab('safety')}
         >
-          <Text style={[styles.tabText, currentTab === 'safety' && styles.activeTabText]}>Safety</Text>
+          <Text style={[styles.tabText, selectedTab === 'safety' && styles.activeTabText]}>Safety</Text>
         </TouchableOpacity>
       </View>
-
-      {currentTab === 'venues' ? (
-        <>
-          {location && (
-            <MapView
-              style={styles.map}
-              initialRegion={{
-                latitude: location.coords.latitude,
-                longitude: location.coords.longitude,
-                latitudeDelta: 0.0922,
-                longitudeDelta: 0.0421,
-              }}
-            >
-              <Marker
-                coordinate={{
-                  latitude: location.coords.latitude,
-                  longitude: location.coords.longitude,
-                }}
-                title="You are here"
-              />
-            </MapView>
-          )}
-
-          <FlatList
-            data={venues}
-            renderItem={({ item }) => <VenueItem venue={item} />}
-            keyExtractor={item => item.id}
-            style={styles.list}
-          />
-        </>
-      ) : (
-        <ScrollView style={styles.safetyContainer}>
-          <View style={styles.sectionContainer}>
-            <Text style={styles.sectionTitle}>💝 Safety Tips 💝</Text>
-            {safetyTips.map(tip => (
-              <SafetyTipCard key={tip.id} tip={tip} />
-            ))}
-          </View>
-
-          <View style={styles.sectionContainer}>
-            <Text style={styles.sectionTitle}>🆘 Emergency Resources 🆘</Text>
-            {emergencyResources.map(resource => (
-              <EmergencyResourceCard key={resource.id} resource={resource} />
-            ))}
-          </View>
-        </ScrollView>
-      )}
-
-      {selectedVenue && (
-        <View style={styles.venueDetails}>
-          <Text style={styles.detailsTitle}>{selectedVenue.name}</Text>
-          <Text style={styles.reviewsTitle}>Reviews:</Text>
-          {selectedVenue.reviews.map(review => (
-            <View key={review.id} style={styles.review}>
-              <Text>{review.text}</Text>
-              <Text style={styles.rating}>Rating: {review.rating}/5 ⭐</Text>
-            </View>
-          ))}
-          <TouchableOpacity
-            style={styles.closeButton}
-            onPress={() => setSelectedVenue(null)}
-          >
-            <Text style={styles.closeButtonText}>Close</Text>
-          </TouchableOpacity>
-        </View>
-      )}
     </SafeAreaView>
   );
 }
@@ -245,230 +219,188 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff5f7',
+    backgroundColor: '#fff',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
   header: {
-    padding: 20,
+    padding: 16,
     backgroundColor: '#ff69b4',
     alignItems: 'center',
-    borderBottomWidth: 3,
-    borderBottomColor: '#ff1493',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+      },
+      android: {
+        elevation: 5,
+      },
+    }),
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: 'white',
-    textShadowColor: '#ff1493',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
+    color: '#fff',
   },
-  tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#ffd1dc',
-    padding: 10,
-  },
-  tab: {
+  content: {
     flex: 1,
-    padding: 10,
-    alignItems: 'center',
-    borderRadius: 20,
-    marginHorizontal: 5,
   },
-  activeTab: {
-    backgroundColor: '#ff69b4',
+  contentContainer: {
+    flex: 1,
   },
-  tabText: {
-    color: '#ff69b4',
-    fontWeight: 'bold',
-  },
-  activeTabText: {
-    color: 'white',
+  mapContainer: {
+    height: 200,
+    marginBottom: 16,
   },
   map: {
-    height: 200,
-  },
-  list: {
     flex: 1,
   },
-  venueItem: {
-    padding: 15,
-    backgroundColor: 'white',
-    margin: 10,
-    borderRadius: 15,
-    shadowColor: '#ff69b4',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  venueHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  venueCard: {
+    margin: 16,
+    padding: 16,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+      },
+      android: {
+        elevation: 5,
+      },
+    }),
   },
   venueName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#ff1493',
-  },
-  safetyBadge: {
-    backgroundColor: '#ff69b4',
-    padding: 8,
-    borderRadius: 15,
-  },
-  safetyText: {
-    color: 'white',
-    fontWeight: 'bold',
+    marginBottom: 8,
   },
   venueType: {
+    fontSize: 16,
     color: '#666',
-    marginTop: 5,
-    fontStyle: 'italic',
+    marginBottom: 4,
   },
   venueAddress: {
-    color: '#999',
-    marginTop: 2,
+    fontSize: 14,
+    color: '#888',
+    marginBottom: 8,
   },
-  featureContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 10,
+  safetyRating: {
+    fontSize: 16,
+    color: '#ff69b4',
+    marginBottom: 8,
   },
-  featureTag: {
-    backgroundColor: '#ffd1dc',
-    padding: 5,
-    borderRadius: 10,
-    margin: 2,
-    fontSize: 12,
-    color: '#ff1493',
+  featuresList: {
+    marginTop: 8,
   },
-  safetyContainer: {
-    flex: 1,
-    padding: 15,
+  feature: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
   },
-  sectionContainer: {
-    marginBottom: 20,
+  reviewsList: {
+    marginTop: 16,
+  },
+  review: {
+    marginBottom: 12,
+    padding: 12,
+    backgroundColor: '#fff5f7',
+    borderRadius: 8,
+  },
+  rating: {
+    color: '#ff69b4',
+    marginTop: 4,
+    fontWeight: 'bold',
+  },
+  section: {
+    margin: 16,
+    padding: 16,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+      },
+      android: {
+        elevation: 5,
+      },
+    }),
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#ff1493',
-    textAlign: 'center',
-    marginBottom: 15,
+    marginBottom: 16,
+    color: '#ff69b4',
   },
   tipCard: {
-    backgroundColor: 'white',
-    padding: 15,
-    borderRadius: 15,
-    marginBottom: 10,
-    shadowColor: '#ff69b4',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    marginBottom: 12,
+    padding: 12,
+    backgroundColor: '#fff5f7',
+    borderRadius: 8,
   },
   tipIcon: {
-    fontSize: 30,
+    fontSize: 24,
     textAlign: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   tipTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#ff1493',
-    marginBottom: 5,
+    color: '#333',
+    marginBottom: 4,
   },
   tipDescription: {
+    fontSize: 14,
     color: '#666',
-    lineHeight: 20,
   },
-  resourceCard: {
-    backgroundColor: 'white',
-    padding: 15,
-    borderRadius: 15,
-    marginBottom: 10,
-    alignItems: 'center',
-    shadowColor: '#ff69b4',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+  contactCard: {
+    marginBottom: 12,
+    padding: 12,
+    backgroundColor: '#fff3f7',
+    borderRadius: 8,
   },
-  resourceName: {
+  contactName: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#ff1493',
-    marginBottom: 5,
+    color: '#333',
   },
-  resourceNumber: {
-    fontSize: 18,
+  contactNumber: {
+    fontSize: 14,
     color: '#ff69b4',
-    fontWeight: 'bold',
-    marginBottom: 5,
+    marginTop: 4,
   },
-  resourceAvailable: {
+  contactAvailable: {
+    fontSize: 14,
     color: '#666',
-    fontStyle: 'italic',
+    marginTop: 4,
   },
-  venueDetails: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'white',
-    padding: 20,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    shadowColor: '#ff69b4',
-    shadowOffset: {
-      width: 0,
-      height: -2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+  tabBar: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    backgroundColor: '#fff',
   },
-  detailsTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#ff1493',
-    marginBottom: 10,
-  },
-  reviewsTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#ff69b4',
-    marginTop: 10,
-  },
-  review: {
-    marginTop: 10,
-    padding: 10,
-    backgroundColor: '#fff5f7',
-    borderRadius: 10,
-  },
-  rating: {
-    color: '#ff69b4',
-    marginTop: 5,
-    fontWeight: 'bold',
-  },
-  closeButton: {
-    marginTop: 20,
-    padding: 15,
-    backgroundColor: '#ff69b4',
-    borderRadius: 25,
+  tab: {
+    flex: 1,
+    paddingVertical: 16,
     alignItems: 'center',
   },
-  closeButtonText: {
-    color: 'white',
+  activeTab: {
+    borderTopWidth: 2,
+    borderTopColor: '#ff69b4',
+  },
+  tabText: {
+    fontSize: 16,
+    color: '#666',
+  },
+  activeTabText: {
+    color: '#ff69b4',
     fontWeight: 'bold',
   },
 });
