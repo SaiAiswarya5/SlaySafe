@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Platform, SafeAreaView, StatusBar, FlatList, Image } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import WelcomeScreen from './screens/WelcomeScreen';
 
 // Safety tips and resources
 const safetyTips = [
@@ -139,32 +142,31 @@ const mockEvents = [
   }
 ];
 
-export default function App() {
+const Stack = createNativeStackNavigator();
+
+const HomeScreen = ({ navigation }) => {
   const [location, setLocation] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
   const [selectedTab, setSelectedTab] = useState('venues');
-  const [loading, setLoading] = useState(true); // Add a loading state
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
-      console.log('Location permission status:', status);  // Log the status of the permission
-
       if (status !== 'granted') {
         setErrorMsg('Permission to access location was denied');
-        setLoading(false);  // Stop loading if permission is denied
+        setLoading(false);
         return;
       }
 
       try {
         let loc = await Location.getCurrentPositionAsync({});
         setLocation(loc);
-        console.log('Location fetched:', loc); // Log fetched location 
       } catch (error) {
         console.error('Error fetching location:', error);
         setErrorMsg('Error fetching location');
       } finally {
-        setLoading(false);  // Stop loading after attempting to get location
+        setLoading(false);
       }
     })();
   }, []);
@@ -194,13 +196,14 @@ export default function App() {
         </View>
       )}
       keyExtractor={item => item.id}
+      style={styles.venuesList}
       ListHeaderComponent={
         <View style={styles.mapContainer}>
           <MapView
             style={styles.map}
             initialRegion={{
-              latitude: location?.coords?.latitude || 40.425869, // Default location
-              longitude: location?.coords?.longitude || -86.908066, // Default location
+              latitude: location?.coords?.latitude || 40.425869,
+              longitude: location?.coords?.longitude || -86.908066,
               latitudeDelta: 0.0922,
               longitudeDelta: 0.0421,
             }}
@@ -244,33 +247,12 @@ export default function App() {
         </View>
       )}
       keyExtractor={item => item.id}
-      ListHeaderComponent={
-        <View style={styles.mapContainer}>
-          <MapView
-            style={styles.map}
-            initialRegion={{
-              latitude: location?.coords?.latitude || 40.425869, // Default location
-              longitude: location?.coords?.longitude || -86.908066, // Default location
-              latitudeDelta: 0.0922,
-              longitudeDelta: 0.0421,
-            }}
-          >
-            {mockVenues.map(venue => (
-              <Marker
-                key={venue.id}
-                coordinate={venue.coordinates}
-                title={venue.name}
-                description={venue.type}
-              />
-            ))}
-          </MapView>
-        </View>
-      }
+      style={styles.venuesList}
     />
   );
 
   const renderSafety = () => (
-    <ScrollView style={styles.contentContainer}>
+    <ScrollView style={styles.safetyContainer}>
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Safety Tips</Text>
         {safetyTips.map(tip => (
@@ -281,14 +263,15 @@ export default function App() {
           </View>
         ))}
       </View>
+      
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🆘 Emergency Resources</Text>
+        <Text style={styles.sectionTitle}>Emergency Resources</Text>
         {emergencyResources.map(resource => (
-          <TouchableOpacity key={resource.id} style={styles.contactCard}>
-            <Text style={styles.contactName}>{resource.name}</Text>
-            <Text style={styles.contactNumber}>{resource.number}</Text>
-            <Text style={styles.contactAvailable}>{resource.available}</Text>
-          </TouchableOpacity>
+          <View key={resource.id} style={styles.resourceCard}>
+            <Text style={styles.resourceName}>{resource.name}</Text>
+            <Text style={styles.resourceNumber}>{resource.number}</Text>
+            <Text style={styles.resourceAvailability}>Available: {resource.available}</Text>
+          </View>
         ))}
       </View>
     </ScrollView>
@@ -296,7 +279,7 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar style="auto" backgroundColor="#fff" barStyle="dark-content" />
+      <StatusBar style="auto" />
       <View style={styles.header}>
         <Text style={styles.title}>✨ Slay Safe ✨</Text>
       </View>
@@ -326,7 +309,27 @@ export default function App() {
       </View>
     </SafeAreaView>
   );
-  
+};
+
+export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  return (
+    <NavigationContainer>
+      <Stack.Navigator>
+        <Stack.Screen 
+          name="Welcome" 
+          component={WelcomeScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen 
+          name="Home"
+          component={HomeScreen}
+          options={{ headerShown: false }}
+        />
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -364,8 +367,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   mapContainer: {
-    height: 200,
+    height: 300,
     marginBottom: 16,
+    borderRadius: 8,
+    overflow: 'hidden',
   },
   map: {
     flex: 1,
@@ -516,5 +521,41 @@ const styles = StyleSheet.create({
   activeTabText: {
     color: '#52022a',
     fontWeight: 'bold',
+  },
+  venuesList: {
+    padding: 16,
+  },
+  eventsContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  comingSoon: {
+    fontSize: 24,
+    color: '#52022a',
+  },
+  safetyContainer: {
+    padding: 16,
+  },
+  resourceCard: {
+    marginBottom: 12,
+    padding: 12,
+    backgroundColor: '#fff5f7',
+    borderRadius: 8,
+  },
+  resourceName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  resourceNumber: {
+    fontSize: 14,
+    color: '#52022a',
+    marginTop: 4,
+  },
+  resourceAvailability: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 4,
   },
 });
