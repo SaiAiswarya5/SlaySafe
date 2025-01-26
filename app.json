@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "SafeNightOut",
-    "slug": "safe-night-out",
+    "name": "SlaySafe",
+    "slug": "slaysafe",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -9,19 +9,32 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ff69b4"
+      "backgroundColor": "#ffffff"
     },
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.slaysafe.app",
+      "buildNumber": "1.0.0",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "SlaySafe needs your location to find safe venues near you",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "SlaySafe needs your location to find safe venues near you",
+        "UIBackgroundModes": ["location"]
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ff69b4"
-      }
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.slaysafe.app",
+      "versionCode": 1,
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -34,9 +47,12 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow SafeNightOut to use your location to find safe venues near you."
+          "locationAlwaysAndWhenInUsePermission": "Allow SlaySafe to use your location to find safe venues near you."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "newArchEnabled": true
+    }
   }
 }
