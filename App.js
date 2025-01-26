@@ -47,9 +47,9 @@ const emergencyResources = [
   },
   {
     id: '3',
-    name: 'Safe Ride Service',
-    number: '1-888-SAFE-RIDE',
-    available: '9PM - 3AM'
+    name: 'Purdue Safe Walk Program',
+    number: '765-494-SAFE(7233)',
+    available: '24/7'
   }
 ];
 
@@ -57,12 +57,12 @@ const emergencyResources = [
 const mockVenues = [
   {
     id: '1',
-    name: "Luna Lounge",
-    type: "Bar & Lounge",
-    address: "123 Main St",
-    safetyRating: 4.8,
-    features: ["Well-lit parking", "Security cameras", "Female security staff"],
-    coordinates: { latitude: 37.78825, longitude: -122.4324 },
+    name: "Harry's Chocolate Shop",
+    type: "Bar",
+    address: "329 W State St, West Lafayette, IN 47906",
+    safetyRating: 4,
+    features: ["Well-lit environment", "Security cameras", "Reliable staff"],
+    coordinates: { latitude: 40.425869, longitude: -86.908066 },
     reviews: [
       { id: '1', text: "Great atmosphere and attentive staff", rating: 5 },
       { id: '2', text: "Security is always present and professional", rating: 4.5 }
@@ -70,15 +70,15 @@ const mockVenues = [
   },
   {
     id: '2',
-    name: "The Pink Door",
+    name: "Neon Cactus",
     type: "Club & Dancing",
-    address: "456 Oak Ave",
-    safetyRating: 4.5,
-    features: ["Drink testing kits", "Safe ride service", "All-female bartenders"],
-    coordinates: { latitude: 37.78925, longitude: -122.4344 },
+    address: "360 Brown St, West Lafayette, IN 47906",
+    safetyRating: 3.7, 
+    features: ["Spacious", "Loud music", "Girl's night friendly"],
+    coordinates: { latitude: 40.425869, longitude: -86.908066 },
     reviews: [
-      { id: '3', text: "Well-lit parking area, felt very safe", rating: 4.5 },
-      { id: '4', text: "Friendly bouncers, zero tolerance for harassment", rating: 4.5 }
+      { id: '3', text: "Well-lit parking area, but felt only moderately safe", rating: 3.5 },
+      { id: '4', text: "Great security, fun place", rating: 3.9 }
     ]
   },
   {
@@ -88,10 +88,53 @@ const mockVenues = [
     address: "789 Pine St",
     safetyRating: 4.9,
     features: ["Women-only event", "Security escorts", "Bag check"],
-    coordinates: { latitude: 37.79025, longitude: -122.4364 },
+    coordinates: { latitude: 40.425869, longitude: -86.908066 },
     reviews: [
       { id: '5', text: "Women-only event, great vibes!", rating: 5 },
       { id: '6', text: "Amazing organization and security", rating: 4.8 }
+    ]
+  }
+];
+
+// Mock events data
+const mockEvents = [
+  {
+    id: '1',
+    name: "Starry Night",
+    type: "Music and Arts Festival",
+    address: "Chauncey Square",
+    safetyRating: 4,
+    features: ["Busy environment", "Security patrol", "Small Buisnesses"],
+    coordinates: { latitude: 40.425869, longitude: -86.908066 },
+    reviews: [
+      { id: '1', text: "Great atmosphere and friendly vendors and volunteers", rating: 5 },
+      { id: '2', text: "Beautiful environment and great food", rating: 4.5 }
+    ]
+  },
+  {
+    id: '2',
+    name: "Bands Night at The Nest",
+    type: "Live music & Dancing",
+    address: "207 W Stadium Ave, West Lafayette, IN 47906",
+    safetyRating: 4.5, 
+    features: ["Party atmosphere", "Loud live music", "College bands"],
+    coordinates: { latitude: 40.425869, longitude: -86.908066 },
+    reviews: [
+      { id: '3', text: "Amazing performances by all the bands", rating: 4 },
+      { id: '4', text: "Talented musicians and performers", rating: 4.2 }
+    ]
+  },
+  {
+    id: '3',
+    name: "PSUB Bingo Night",
+    type: "Student Union Club Event",
+    address: "Purdue Memorial Union",
+    safetyRating: 4.6,
+    features: ["Community", "On campus", "Games"],
+    coordinates: { latitude: 40.425869, longitude: -86.908066 },
+    reviews: [
+      { id: '5', text: "Safe, Exciting and fun", rating: 4 },
+      { id: '6', text: "Love to be around friendly faces", rating: 4.8 }
     ]
   }
 ];
@@ -100,74 +143,136 @@ export default function App() {
   const [location, setLocation] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
   const [selectedTab, setSelectedTab] = useState('venues');
+  const [loading, setLoading] = useState(true); // Add a loading state
 
   useEffect(() => {
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
+      console.log('Location permission status:', status);  // Log the status of the permission
+
       if (status !== 'granted') {
         setErrorMsg('Permission to access location was denied');
+        setLoading(false);  // Stop loading if permission is denied
         return;
       }
 
-      let location = await Location.getCurrentPositionAsync({});
-      setLocation(location);
+      try {
+        let loc = await Location.getCurrentPositionAsync({});
+        setLocation(loc);
+        console.log('Location fetched:', loc); // Log fetched location 
+      } catch (error) {
+        console.error('Error fetching location:', error);
+        setErrorMsg('Error fetching location');
+      } finally {
+        setLoading(false);  // Stop loading after attempting to get location
+      }
     })();
   }, []);
 
   const renderVenues = () => (
-    <ScrollView style={styles.contentContainer}>
-      <View style={styles.mapContainer}>
-        <MapView
-          style={styles.map}
-          initialRegion={{
-            latitude: location?.coords?.latitude || 37.78825,
-            longitude: location?.coords?.longitude || -122.4324,
-            latitudeDelta: 0.0922,
-            longitudeDelta: 0.0421,
-          }}
-        >
-          {mockVenues.map(venue => (
-            <Marker
-              key={venue.id}
-              coordinate={venue.coordinates}
-              title={venue.name}
-              description={venue.type}
-            />
-          ))}
-        </MapView>
-      </View>
-      <FlatList
-        data={mockVenues}
-        renderItem={({ item }) => (
-          <View key={item.id} style={styles.venueCard}>
-            <Text style={styles.venueName}>{item.name}</Text>
-            <Text style={styles.venueType}>{item.type}</Text>
-            <Text style={styles.venueAddress}>{item.address}</Text>
-            <Text style={styles.safetyRating}>Safety Rating: ⭐️ {item.safetyRating}/5</Text>
-            <View style={styles.featuresList}>
-              {item.features.map((feature, index) => (
-                <Text key={index} style={styles.feature}>• {feature}</Text>
-              ))}
-            </View>
-            <View style={styles.reviewsList}>
-              {item.reviews.map(review => (
-                <View key={review.id} style={styles.review}>
-                  <Text>{review.text}</Text>
-                  <Text style={styles.rating}>Rating: {review.rating}/5 ⭐</Text>
-                </View>
-              ))}
-            </View>
+    <FlatList
+      data={mockVenues}
+      renderItem={({ item }) => (
+        <View key={item.id} style={styles.venueCard}>
+          <Text style={styles.venueName}>{item.name}</Text>
+          <Text style={styles.venueType}>{item.type}</Text>
+          <Text style={styles.venueAddress}>{item.address}</Text>
+          <Text style={styles.safetyRating}>Safety Rating: ⭐️ {item.safetyRating}/5</Text>
+          <View style={styles.featuresList}>
+            {item.features.map((feature, index) => (
+              <Text key={index} style={styles.feature}>• {feature}</Text>
+            ))}
           </View>
-        )}
-        keyExtractor={item => item.id}
-      />
-    </ScrollView>
+          <View style={styles.reviewsList}>
+            {item.reviews.map(review => (
+              <View key={review.id} style={styles.review}>
+                <Text>{review.text}</Text>
+                <Text style={styles.rating}>Rating: {review.rating}/5 ⭐</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
+      keyExtractor={item => item.id}
+      ListHeaderComponent={
+        <View style={styles.mapContainer}>
+          <MapView
+            style={styles.map}
+            initialRegion={{
+              latitude: location?.coords?.latitude || 40.425869, // Default location
+              longitude: location?.coords?.longitude || -86.908066, // Default location
+              latitudeDelta: 0.0922,
+              longitudeDelta: 0.0421,
+            }}
+          >
+            {mockVenues.map(venue => (
+              <Marker
+                key={venue.id}
+                coordinate={venue.coordinates}
+                title={venue.name}
+                description={venue.type}
+              />
+            ))}
+          </MapView>
+        </View>
+      }
+    />
+  );
+
+  const renderEvents = () => (
+    <FlatList
+      data={mockEvents}
+      renderItem={({ item }) => (
+        <View key={item.id} style={styles.venueCard}>
+          <Text style={styles.venueName}>{item.name}</Text>
+          <Text style={styles.venueType}>{item.type}</Text>
+          <Text style={styles.venueAddress}>{item.address}</Text>
+          <Text style={styles.safetyRating}>Safety Rating: ⭐️ {item.safetyRating}/5</Text>
+          <View style={styles.featuresList}>
+            {item.features.map((feature, index) => (
+              <Text key={index} style={styles.feature}>• {feature}</Text>
+            ))}
+          </View>
+          <View style={styles.reviewsList}>
+            {item.reviews.map(review => (
+              <View key={review.id} style={styles.review}>
+                <Text>{review.text}</Text>
+                <Text style={styles.rating}>Rating: {review.rating}/5 ⭐</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
+      keyExtractor={item => item.id}
+      ListHeaderComponent={
+        <View style={styles.mapContainer}>
+          <MapView
+            style={styles.map}
+            initialRegion={{
+              latitude: location?.coords?.latitude || 40.425869, // Default location
+              longitude: location?.coords?.longitude || -86.908066, // Default location
+              latitudeDelta: 0.0922,
+              longitudeDelta: 0.0421,
+            }}
+          >
+            {mockVenues.map(venue => (
+              <Marker
+                key={venue.id}
+                coordinate={venue.coordinates}
+                title={venue.name}
+                description={venue.type}
+              />
+            ))}
+          </MapView>
+        </View>
+      }
+    />
   );
 
   const renderSafety = () => (
     <ScrollView style={styles.contentContainer}>
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>💝 Safety Tips 💝</Text>
+        <Text style={styles.sectionTitle}>Safety Tips</Text>
         {safetyTips.map(tip => (
           <View key={tip.id} style={styles.tipCard}>
             <Text style={styles.tipIcon}>{tip.icon}</Text>
@@ -177,7 +282,7 @@ export default function App() {
         ))}
       </View>
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🆘 Emergency Resources 🆘</Text>
+        <Text style={styles.sectionTitle}>🆘 Emergency Resources</Text>
         {emergencyResources.map(resource => (
           <TouchableOpacity key={resource.id} style={styles.contactCard}>
             <Text style={styles.contactName}>{resource.name}</Text>
@@ -193,10 +298,11 @@ export default function App() {
     <SafeAreaView style={styles.container}>
       <StatusBar style="auto" backgroundColor="#fff" barStyle="dark-content" />
       <View style={styles.header}>
-        <Text style={styles.title}>✨ SafeNightOut ✨</Text>
+        <Text style={styles.title}>✨ Slay Safe ✨</Text>
       </View>
       <View style={styles.content}>
-        {selectedTab === 'venues' ? renderVenues() : renderSafety()}
+        {selectedTab === 'venues' ? renderVenues() : 
+         selectedTab === 'events' ? renderEvents() : renderSafety()}
       </View>
       <View style={styles.tabBar}>
         <TouchableOpacity
@@ -204,6 +310,12 @@ export default function App() {
           onPress={() => setSelectedTab('venues')}
         >
           <Text style={[styles.tabText, selectedTab === 'venues' && styles.activeTabText]}>Venues</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, selectedTab === 'events' && styles.activeTab]}
+          onPress={() => setSelectedTab('events')}
+        >
+          <Text style={[styles.tabText, selectedTab === 'events' && styles.activeTabText]}>Events</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, selectedTab === 'safety' && styles.activeTab]}
@@ -214,6 +326,7 @@ export default function App() {
       </View>
     </SafeAreaView>
   );
+  
 }
 
 const styles = StyleSheet.create({
@@ -224,7 +337,7 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 16,
-    backgroundColor: '#ff69b4',
+    backgroundColor: '#c8b6ff',
     alignItems: 'center',
     ...Platform.select({
       ios: {
@@ -239,6 +352,7 @@ const styles = StyleSheet.create({
     }),
   },
   title: {
+    fontFamily: 'Georgia',
     fontSize: 24,
     fontWeight: 'bold',
     color: '#fff',
@@ -259,7 +373,7 @@ const styles = StyleSheet.create({
   venueCard: {
     margin: 16,
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: '#ffb6c1',
     borderRadius: 12,
     ...Platform.select({
       ios: {
@@ -290,7 +404,7 @@ const styles = StyleSheet.create({
   },
   safetyRating: {
     fontSize: 16,
-    color: '#ff69b4',
+    color: '#52022a',
     marginBottom: 8,
   },
   featuresList: {
@@ -311,14 +425,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   rating: {
-    color: '#ff69b4',
+    color: '#52022a',
     marginTop: 4,
     fontWeight: 'bold',
   },
   section: {
     margin: 16,
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: '#b3d1e7',
     borderRadius: 12,
     ...Platform.select({
       ios: {
@@ -336,7 +450,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 16,
-    color: '#ff69b4',
+    color: '#52022a',
   },
   tipCard: {
     marginBottom: 12,
@@ -372,7 +486,7 @@ const styles = StyleSheet.create({
   },
   contactNumber: {
     fontSize: 14,
-    color: '#ff69b4',
+    color: '#52022a',
     marginTop: 4,
   },
   contactAvailable: {
@@ -393,14 +507,14 @@ const styles = StyleSheet.create({
   },
   activeTab: {
     borderTopWidth: 2,
-    borderTopColor: '#ff69b4',
+    borderTopColor: '#52022a',
   },
   tabText: {
     fontSize: 16,
     color: '#666',
   },
   activeTabText: {
-    color: '#ff69b4',
+    color: '#52022a',
     fontWeight: 'bold',
   },
 });
